@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Caries Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f4f4f4;
+        }
+        #uploadContainer {
+            margin-bottom: 20px;
+        }
+        #uploadInput {
+            padding: 10px;
+            border: 2px solid #4CAF50;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: white;
+        }
+        canvas {
+            display: block;
+            border: 2px solid #4CAF50;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="uploadContainer">
+        <label for="uploadInput">Choose an image: </label>
+        <input id="uploadInput" type="file" accept="image/*" />
+    </div>
+    <canvas></canvas>
+    
+    <script>
+        const input = document.getElementById("uploadInput");
+        input.addEventListener("change", async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const data = new FormData();
+            data.append("image_file", file);
+            
+            const response = await fetch("/detect", { method: "POST", body: data });
+            const boxes = await response.json();
+            drawImageAndBoxes(file, boxes);
+        });
+        
+        function drawImageAndBoxes(file, boxes) {
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            img.onload = () => {
+                const canvas = document.querySelector("canvas");
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0);
+                
+                ctx.strokeStyle = "#FF0000";
+                ctx.lineWidth = 3;
+                ctx.font = "20px Arial";
+                ctx.fillStyle = "red";
+                
+                boxes.forEach(([x1, y1, x2, y2, label]) => {
+                    ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+                    ctx.fillText(label, x1 + 5, y1 - 5);
+                });
+            };
+        }
+    </script>
+</body>
+</html>
